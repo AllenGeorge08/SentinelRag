@@ -1,7 +1,6 @@
 from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import client
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
+from app.evaluation.metrics.llm_client import client 
+
 import json 
 
 
@@ -9,9 +8,6 @@ class Correctness(TypedDict):
     #Helps model to reason before filling this schema
     explaination: Annotated[str,...,"Explain your reasoning for the score"]
     is_correct: Annotated[bool,...,"True if the answer is correct, False otherwise"]
-
-
-parser = JsonOutputParser(pydantic_object=Correctness)
 
 
 correctness_instructions ="""
@@ -39,23 +35,8 @@ Avoid simply stating the correct answer at the outset.
 
 """
 
-correctness_response_format = {
-    "type": "json_schema",
-    "json_schema": {
-        "name":"correctness",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "explaination": {"type": "string"},
-                "is_correct": {"type": "boolean"}
-            },
-            "required": ["explaination","is_correct"]
-        }
-    }
-}
 
-
-structure_llm = client.with_structured_output(Correctness)
+structure_llm = client.with_structured_output(Correctness,method="json_schema",strict=True)
 
 def correctness(inputs: dict, outputs: dict,reference_outputs: dict) -> bool:
     """Evaluator for RAG Output Accuracy"""

@@ -81,5 +81,9 @@ def process_query(user_query: str):
         model="openai/gpt-oss-20b"
     )
     print(f"🤖: {response.choices[0].message.content}")
-    return response.choices[0].message.content
+    answer =  response.choices[0].message.content
+    return {
+        "answer": answer,
+        "documents": results
+    }
 
