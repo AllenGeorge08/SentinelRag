@@ -12,9 +12,7 @@ import logging
 pdf_dir = Path(__file__).parent.parent.parent / "data"
 
 
-if client.collection_exists(collection_name=COLLECTION_NAME):
-   print("Collection already exists")
-else:
+def create_collection():
     client.create_collection(
         COLLECTION_NAME,
         vectors_config={
@@ -41,6 +39,14 @@ else:
     print(f"Collection {COLLECTION_NAME} created..")
 
 
+
+
+if client.collection_exists(collection_name=COLLECTION_NAME):
+   client.delete_collection(COLLECTION_NAME)
+   create_collection()
+else:
+    create_collection()
+   
 
 def load_docs(path):
     docs = []
@@ -104,6 +110,7 @@ def build_points(chunks,dense_model,sparse_model,late_model):
                 "sparse": Document(text=chunk["text"],model=sparse_model),
                 "multi": Document(text=chunk["text"],model=late_model)
             },
+            payload=chunk
         )
 
     
@@ -118,3 +125,13 @@ except Exception as e:
     logging.critical(f"Indexing Error: {e}")
 
 
+# import pymupdf
+
+# doc = pymupdf.open("data/SAFEAI_Full_Report.pdf")
+# for page_num, page in enumerate(doc):
+#     text = page.get_text()
+#     if "jailbreak" in text.lower():
+#         print(f"--- Page {page_num + 1} ---")
+#         print(text)
+#         print()
+# doc.close()
