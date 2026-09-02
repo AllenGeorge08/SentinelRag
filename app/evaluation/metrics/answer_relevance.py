@@ -1,9 +1,10 @@
 from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import client 
+from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,ollama_model
+from pydantic import BaseModel,Field
 
-class RelevanceGrade(TypedDict):
-    explaination: Annotated[str,...,"Explain your reasoning for the score"]
-    is_relevant: Annotated[bool,...,"Provide the score on whether the answer addresses the question correctly or not"]
+class RelevanceGrade(BaseModel):
+    explaination: str=   Field(description="Explain your reasoning for the score")
+    is_relevant: bool = Field(description="Provide the score on whether the answer addresses the question correctly or not")
 
 
 relevance_instructions = """
@@ -27,7 +28,9 @@ Avoid simply stating the correct answer at the outset.
 
 """
 
-relevance_llm = client.with_structured_output(RelevanceGrade,method="json_schema",strict=True)
+
+relevance_llm = groq_model.with_structured_output(RelevanceGrade,method="json_schema",strict=True).with_fallbacks([nvidia_llm.with_structured_output(RelevanceGrade,method="json_schema",strict=True),ollama_model.with_structured_output(RelevanceGrade,method="json_schema",strict=True)])
+
 
 def relevance(inputs:dict,outputs: dict) -> bool:
     """Relevance Scoring For RAG Pipeline"""
@@ -36,4 +39,4 @@ def relevance(inputs:dict,outputs: dict) -> bool:
         {"role": "system", "content": relevance_instructions},
         {"role": "user","content": answer}
     ])
-    return grade["is_relevant"]
+    return grade.is_relevant

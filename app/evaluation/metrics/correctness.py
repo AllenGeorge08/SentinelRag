@@ -1,13 +1,13 @@
 from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import client 
-
+from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,ollama_model
+from pydantic import BaseModel,Field
 import json 
 
 
-class Correctness(TypedDict):
+class Correctness(BaseModel):
     #Helps model to reason before filling this schema
-    explaination: Annotated[str,...,"Explain your reasoning for the score"]
-    is_correct: Annotated[bool,...,"True if the answer is correct, False otherwise"]
+    explaination: str = Field(description="Explain your reasoning for the score")
+    is_correct: bool  =  Field(description="True if the answer is correct, False otherwise")
 
 
 correctness_instructions ="""
@@ -23,7 +23,7 @@ Here's the grade criteria to follow:
 3) A response maybe factually correct but should be marked incorrect if it omits essential information required to fully answer the question.
 4) Base your evaluation based on student answer and ground truth. Don't use external knowledge base.
 5) Ignore differences in wording,sentence structure,or formatting . Focus only on factual equivalence.
-6) If a student answers more than the ground truth answer, and it contains enough relevancy, as it is factually correct to the ground truth answer.
+6) If a student answers more than the ground truth answer, and it contains enough relevancy, treat it as factually correct to the ground truth answer.
 
 Correctness:
 - A correctness value of True means that the student's answer meets all of the criteria.
@@ -36,7 +36,10 @@ Avoid simply stating the correct answer at the outset.
 """
 
 
-structure_llm = client.with_structured_output(Correctness,method="json_schema",strict=True)
+
+structure_llm = groq_model.with_structured_output(Correctness,method="json_schema",strict=True).with_fallbacks([nvidia_llm.with_structured_output(Correctness,method="json_schema",strict=True),ollama_model.with_structured_output(Correctness,method="json_schema",strict=True)])
+
+
 
 def correctness(inputs: dict, outputs: dict,reference_outputs: dict) -> bool:
     """Evaluator for RAG Output Accuracy"""
@@ -50,7 +53,7 @@ def correctness(inputs: dict, outputs: dict,reference_outputs: dict) -> bool:
         ("user",actual_answers)
     ])
 
-    return result["is_correct"]
+    return result.is_correct
 
 
     

@@ -8,12 +8,9 @@ from app.evaluation.metrics.faithfulness import faithfulness
 from app.evaluation.metrics.correctness import correctness
 from app.evaluation.metrics.retrieval_relevance import retrieval_relevance
 from app.rag.queues.worker import process_query
-import polars as pl
 from pathlib import Path
 
 #Creating dataset
-
-
 load_dotenv()
 
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
@@ -35,13 +32,10 @@ for _,row in dataset_main.iterrows():
     })
 
 
-try:
-    dataset=client.read_dataset(dataset_name=dataset_name)
-except:
-    dataset = client.create_dataset(dataset_name=dataset_name)
+if client.has_dataset(dataset_name=dataset_name):
+    client.delete_dataset(dataset_name=dataset_name)
 
-
-
+dataset = client.create_dataset(dataset_name=dataset_name)
 
 # print(dataset)
 
@@ -62,10 +56,10 @@ evaluation_results = client.evaluate(
     data=dataset_name,
     evaluators=[correctness,faithfulness,relevance,retrieval_relevance],
     experiment_prefix="rag-doc-relevance",
-    metadata={"version": "LCEL Context, gpt-4-0125-preview"}
+    metadata={"version": "LCEL Context, gpt-4-0125-preview"},
+
 )
 
 
-df = pl.DataFrame(evaluation_results)
-df.to_pandas()
+df = evaluation_results.to_pandas()
 

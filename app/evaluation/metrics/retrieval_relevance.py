@@ -1,9 +1,10 @@
 from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import client 
+from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,ollama_model
+from pydantic import BaseModel,Field
 
-class RetrievalRelevance(TypedDict):
-    explanation: Annotated[str,...,"Explain your reasoning for the score"]
-    relevant: Annotated[bool,...,"True if the retrieved documents are relevant to the question"]
+class RetrievalRelevance(BaseModel):
+    explanation: str =  Field(description="Explain your reasoning for the score")
+    relevant : bool = Field(description="True if the retrieved documents are relevant to the question")
 
 
 retrieval_relevance_instructions = """
@@ -28,12 +29,14 @@ Avoid simply stating the correct answer at the outset.
 
 """
 
-retrieval_relevance_llm = client.with_structured_output(RetrievalRelevance,method="json_schema",strict=True)
+
+retrieval_relevance_llm  = groq_model.with_structured_output(RetrievalRelevance,method="json_schema",strict=True).with_fallbacks([nvidia_llm.with_structured_output(RetrievalRelevance,method="json_schema",strict=True),ollama_model.with_structured_output(RetrievalRelevance,method="json_schema",strict=True)])
 
 
 def retrieval_relevance(inputs: dict,outputs: dict)-> bool:
     """An evaluator for document relevance"""
-    doc_string = "\n\n".join(doc.page_content for doc in outputs["documents"])
+    points = outputs["documents"].points
+    doc_string = "\n\n".join(p.payload["text"] for p in points if p.payload and p.payload.get("text"))
     answer = f"FACTS: {doc_string}\n QUESTION: {inputs['question']}"
 
     grade = retrieval_relevance_llm.invoke([
@@ -41,4 +44,4 @@ def retrieval_relevance(inputs: dict,outputs: dict)-> bool:
         {"role":"user","content": answer}
     ])
 
-    return grade["relevant"]
+    return grade.relevant
