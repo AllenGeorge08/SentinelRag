@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query
 from .clients.ragqueue_client import queue
-from rag.queues.worker import process_query
+from app.rag.queues.worker import process_query
 from langsmith import traceable
 
 app = FastAPI()

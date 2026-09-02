@@ -1,11 +1,11 @@
 import os 
 from groq import Groq 
 from dotenv import load_dotenv
-from rag.config.config import dense_embedding_model,sparse_embedding_model,COLLECTION_NAME
+from app.rag.config.config import dense_embedding_model,sparse_embedding_model,COLLECTION_NAME
 from langsmith import traceable
-from rag.clients.qdrant_client import client 
+from app.rag.clients.qdrant_client import client 
 from qdrant_client.models import models
-from rag.config.config import COLLECTION_NAME
+from app.rag.config.config import COLLECTION_NAME
 
 load_dotenv()
 
@@ -110,5 +110,6 @@ def process_query(user_query: str):
     answer =  response.choices[0].message.content
     return {
         "answer": answer,
+        "documents": results
     }
 

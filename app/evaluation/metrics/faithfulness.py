@@ -1,10 +1,11 @@
-from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import client 
 
-class Faithfulness(TypedDict):
-    explanation: Annotated[str,...,"Explain your reasoning for the score"]
-    grounded: Annotated[bool,...,"Provide the score on if the given answer hallucinates from the documentation"]
+from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,ollama_model
 
+from pydantic import BaseModel,Field
+
+class Faithfulness(BaseModel):
+    explanation: str = Field(description="Explain your reasoning for the score")
+    grounded: str = Field(description="Provide the score on if the given answer hallucinates from the documentation")
 
 
 faithfulness_instructions = """
@@ -28,11 +29,12 @@ Avoid simply stating the correct answer at the outset.
 
 """
 
-faithfulness_llm = client.with_structured_output(Faithfulness,method="json_schema",strict=True)
+faithfulness_llm = groq_model.with_structured_output(Faithfulness,method="json_schema",strict=True).with_fallbacks([nvidia_llm.with_structured_output(Faithfulness,method="json_schema",strict=True),ollama_model.with_structured_output(Faithfulness,method="json_schema",strict=True)])
 
 def faithfulness(inputs: dict,outputs: dict) ->bool:
     """Evaluator to check RAG's Faithfulness metric"""
-    doc_string = "\n\n".join(doc.page_content for doc in outputs["documents"])
+    points = outputs["documents"].points
+    doc_string = "\n\n".join(p.payload["text"] for p in points if p.payload and p.payload.get("text"))
     answer = f"FACTS: {doc_string}\nSTUDENT ANSWER: {outputs['answer']}"
 
     grade = faithfulness_llm.invoke([
@@ -44,4 +46,4 @@ def faithfulness(inputs: dict,outputs: dict) ->bool:
         "content": answer
     }])
 
-    return grade["grounded"]
+    return grade.grounded
