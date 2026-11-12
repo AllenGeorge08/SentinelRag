@@ -27,11 +27,15 @@ except:
 nvidia_llm = ChatNVIDIA(model="nvidia/nemotron-3-ultra-550b-a55b",nvidia_api_key=API_KEY)
 
 
-from langchain_ollama import ChatOllama
+from langchain_openrouter import ChatOpenRouter
 
-ollama_model = ChatOllama(
-    model="minimax-m3:cloud",
-    reasoning=True
+load_dotenv()
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+openrouter_model = ChatOpenRouter(
+    api_key=OPENROUTER_API_KEY,
+    model="openai/gpt-6-luna"
 )
 
 

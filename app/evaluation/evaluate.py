@@ -33,19 +33,25 @@ for _,row in dataset_main.iterrows():
 
 
 if client.has_dataset(dataset_name=dataset_name):
-    client.delete_dataset(dataset_name=dataset_name)
+    # client.delete_dataset(dataset_name=dataset_name)
+    dataset = client.read_dataset(dataset_name=dataset_name)
+    existing = list(client.list_examples(dataset_id=dataset.id))
+    for ex in existing:
+        client.delete_example(example_id=ex.id)
+    example = client.create_examples(
+        dataset_id=dataset.id,
+        examples= examples   
+    )
+    print("Evaluation Examples created succesfully")
+else:
+    dataset = client.create_dataset(dataset_name=dataset_name)
+    # print(dataset)
+    example = client.create_examples(
+        dataset_id=dataset.id,
+        examples= examples   
+    )
 
-dataset = client.create_dataset(dataset_name=dataset_name)
-
-# print(dataset)
-
-example = client.create_examples(
-    dataset_id=dataset.id,
-    examples= examples   
-)
-
-
-print("Evaluation Examples created succesfully")
+    print("Evaluation Examples created succesfully")
 
 def target(inputs: dict) -> dict:
     return process_query(inputs["question"])
@@ -56,9 +62,10 @@ evaluation_results = client.evaluate(
     data=dataset_name,
     evaluators=[correctness,faithfulness,relevance,retrieval_relevance],
     experiment_prefix="rag-doc-relevance",
-    metadata={"version": "LCEL Context, gpt-4-0125-preview"},
-
+    metadata={"version": "LCEL Context, gpt-4-0125-preview"},    
+   max_concurrency=4
 )
+
 
 
 df = evaluation_results.to_pandas()

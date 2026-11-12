@@ -1,5 +1,5 @@
 from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,ollama_model
+from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,openrouter_model
 from pydantic import BaseModel,Field
 
 class RetrievalRelevance(BaseModel):
@@ -28,10 +28,39 @@ Explain your reasoning in a step-by-step manner to ensure your reasoning and con
 Avoid simply stating the correct answer at the outset.
 
 """
+# Primary model: OpenRouter
+openrouter_structured = openrouter_model.with_structured_output(
+    RetrievalRelevance, 
+    method="json_schema", 
+    strict=True
+)
 
+# Fallback 1: Groq
+groq_structured = groq_model.with_structured_output(
+    RetrievalRelevance, 
+    method="json_schema", 
+    strict=True
+).with_retry(
+    retry_if_exception_type=(Exception,), 
+    wait_exponential_jitter=True, 
+    stop_after_attempt=4
+)
 
-retrieval_relevance_llm  = groq_model.with_structured_output(RetrievalRelevance,method="json_schema",strict=True).with_fallbacks([nvidia_llm.with_structured_output(RetrievalRelevance,method="json_schema",strict=True),ollama_model.with_structured_output(RetrievalRelevance,method="json_schema",strict=True)])
+# Fallback 2: NVIDIA
+nvidia_structured = nvidia_llm.with_structured_output(
+    RetrievalRelevance, 
+    method="json_schema", 
+    strict=True
+).with_retry(
+    retry_if_exception_type=(Exception,), 
+    wait_exponential_jitter=True, 
+    stop_after_attempt=4
+)
 
+# Combined runnable: OpenRouter -> Groq -> NVIDIA
+retrieval_relevance_llm = openrouter_structured.with_fallbacks(
+    [groq_structured, nvidia_structured]
+)
 
 def retrieval_relevance(inputs: dict,outputs: dict)-> bool:
     """An evaluator for document relevance"""
