@@ -1,17 +1,16 @@
 import os 
-from groq import Groq 
+from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from app.rag.config.config import dense_embedding_model,sparse_embedding_model,COLLECTION_NAME
 from langsmith import traceable
 from app.rag.clients.qdrant_client import client 
 from qdrant_client.models import models
 from app.rag.config.config import COLLECTION_NAME
+from app.evaluation.metrics.llm_client import groq_model
+
+
 
 load_dotenv()
-
-groq_client = Groq(
-    api_key=os.environ.get('GROQ_API_KEY')
-)
 
 # v1
 # reasoning_model = ChatOllama(
@@ -19,6 +18,8 @@ groq_client = Groq(
 #     validate_model_on_init=True,
 #     reasoning=True
 # )
+
+groq_structured = groq_model.with_retry(retry_if_exception_type=(Exception,),wait_exponential_jitter=True,stop_after_attempt=4)
 
 
 # v1
@@ -102,12 +103,12 @@ def process_query(user_query: str):
         {"role": "user","content": user_query}
     ]
 
-    response =  groq_client.chat.completions.create(
-        messages=messages,
-        model="openai/gpt-oss-20b"
+    response =  groq_structured.invoke(
+        input=messages
     )
-    print(f"🤖: {response.choices[0].message.content}")
-    answer =  response.choices[0].message.content
+    
+    answer = response.content if hasattr(response, "content") else str(response)
+    print(f"🤖: {answer}")
     return {
         "answer": answer,
         "documents": results
