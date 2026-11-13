@@ -1,6 +1,5 @@
-
-from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,openrouter_model
-
+from typing_extensions import Annotated,TypedDict
+from app.evaluation.metrics.llm_client import openrouter_model
 from pydantic import BaseModel,Field
 
 
@@ -34,41 +33,20 @@ Avoid simply stating the correct answer at the outset.
 openrouter_structured = openrouter_model.with_structured_output(
     Faithfulness, 
     method="json_schema", 
-    strict=True
-)
-
-# Fallback 1: Groq
-groq_structured = groq_model.with_structured_output(
-    Faithfulness, 
-    method="json_schema", 
-    strict=True
+    strict=True,
 ).with_retry(
     retry_if_exception_type=(Exception,), 
     wait_exponential_jitter=True, 
     stop_after_attempt=4
 )
 
-# Fallback 2: NVIDIA
-nvidia_structured = nvidia_llm.with_structured_output(
-    Faithfulness, 
-    method="json_schema", 
-    strict=True
-).with_retry(
-    retry_if_exception_type=(Exception,), 
-    wait_exponential_jitter=True, 
-    stop_after_attempt=4
-)
-
-# Combined runnable: OpenRouter -> Groq -> NVIDIA
-faithfulness_llm = openrouter_structured.with_fallbacks(
-    [groq_structured, nvidia_structured]
-)
+faithfulness_llm = openrouter_structured
 
 
 def faithfulness(inputs: dict,outputs: dict) ->bool:
     """Evaluator to check RAG's Faithfulness metric"""
-    points = outputs["documents"].points
-    doc_string = "\n\n".join(p.payload["text"] for p in points if p.payload and p.payload.get("text"))
+    documents = outputs["documents"]
+    doc_string = "\n\n".join(d["text"] for d in documents if d.get("text"))
     answer = f"FACTS: {doc_string}\nSTUDENT ANSWER: {outputs['answer']}"
 
     grade = faithfulness_llm.invoke([

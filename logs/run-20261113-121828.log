@@ -1,0 +1,9 @@
+Qdrant API Keys Loaded....
+Qdrant client initialized..
+API Keys Configured Succesfully
+Evaluation Examples created succesfully
+View the evaluation results for experiment: 'rag-doc-relevance-89fe000d' at:
+https://smith.langchain.com/o/6bb11db4-bbaa-43db-a5f0-9d6164f5c573/datasets/6d3698a4-8b45-4570-8724-1d479d527509/compare?selectedSessions=780c4546-90dd-4f35-8ea7-fed3ec1d5d43
+
+
+0it [00:00, ?it/s]1it [00:35, 35.21s/it]2it [00:47, 21.91s/it]3it [01:05, 19.88s/it]4it [01:24, 19.51s/it]5it [01:36, 16.94s/it]6it [01:54, 17.28s/it]7it [02:12, 17.47s/it]8it [02:28, 16.97s/it]9it [02:46, 17.50s/it]10it [03:07, 18.29s/it]11it [03:23, 17.70s/it]12it [03:42, 18.08s/it]13it [04:01, 18.46s/it]14it [04:23, 19.42s/it]15it [04:42, 19.47s/it]16it [05:03, 19.92s/it]17it [05:27, 21.12s/it]18it [05:45, 19.95s/it]19it [06:04, 19.75s/it]20it [06:18, 18.15s/it]20it [06:18, 18.94s/it]

@@ -1,0 +1,48 @@
+- file: mu-et-al-2026-secure-rag-threats-defenses-benchmarks.pdf
+  title: "Towards Secure Retrieval-Augmented Generation: A Comprehensive Review of Threats, Defenses and Benchmarks"
+  publisher: arXiv 2603.21654
+  year: 2026
+  doc_type: survey
+  url: https://arxiv.org/abs/2603.21654
+
+- file: nist.ai.100-1.pdf
+  title: "Artificial Intelligence Risk Management Framework (AI RMF 1.0)"
+  publisher: NIST (NIST AI 100-1)
+  year: 2023
+  doc_type: framework
+  url: https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf
+
+- file: OWASP-GenAI-LLM-Top-10-2026-v1.0.pdf
+  title: "OWASP Top 10 for LLM Applications 2026"
+  publisher: OWASP GenAI Security Project
+  year: 2026
+  doc_type: guide
+  url: https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
+
+- file: SAFEAI_Full_Report.pdf
+  title: "SAFE-AI: A Framework for Securing AI-Enabled Systems"
+  publisher: The MITRE Corporation
+  year: 2025
+  doc_type: framework
+  url: https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf
+
+- file: Solutions-Landscape-Red-Teaming-Taxonomy-v.1.0.pdf
+  title: "Solutions Landscape – Red Teaming Taxonomy"
+  publisher: OWASP GenAI Security Project
+  year: 2026
+  doc_type: taxonomy
+  url: https://genai.owasp.org/resource/solutions-landscape-red-teaming-taxonomy/
+
+- file: State-of-Agentic-AI-Security-and-Governance-v2.01.pdf
+  title: "State of Agentic AI Security and Governance 2.01"
+  publisher: OWASP GenAI Security Project
+  year: 2026
+  doc_type: report
+  url: https://genai.owasp.org/resource/state-of-agentic-ai-security-and-governance/
+
+- file: securing-ai-systems-known-attacks-and-impacts-2025.pdf
+  title: "Securing AI Systems: A Guide to Known Attacks and Impacts"
+  publisher: arXiv 2506.23296
+  year: 2025
+  doc_type: guide
+  url: https://arxiv.org/abs/2506.23296

@@ -5,11 +5,22 @@ from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag.clients.qdrant_client import client 
 import pymupdf
+import yaml
 from rag.config.config import dense_embedding_model,sparse_embedding_model,late_interaction_embedding_model,COLLECTION_NAME
 from qdrant_client.models import Document,PointStruct,Distance,VectorParams,models
 import logging
 
 pdf_dir = Path(__file__).parent.parent.parent / "data"
+
+# Load sources.yaml for metadata indexing
+sources_yaml_path = pdf_dir/"sources.yaml"
+metadata_lookup = {}
+if sources_yaml_path.exists():
+    with open(sources_yaml_path,"r",encoding="utf-8") as f:
+        sources_data = yaml.safe_load(stream=f)
+        for item in sources_data:
+            if "file" in item:
+                metadata_lookup[item["file"]] = item
 
 
 def create_collection():
@@ -37,7 +48,6 @@ def create_collection():
         }
     )
     print(f"Collection {COLLECTION_NAME} created..")
-
 
 
 
@@ -82,6 +92,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 # chunks = text_splitter.split_documents(documents=docs)
 def chunk_pdf(pages,source):
+    file_metadata = metadata_lookup.get(source,{})
     for page in pages:
         chunks = text_splitter.split_text(page["text"])
         for i,chunk in enumerate(chunks):
@@ -89,7 +100,13 @@ def chunk_pdf(pages,source):
                 "text": chunk,
                 "page": page["page"],
                 "chunk_id": i,
-                "source": source 
+                "filename": source,
+                "source": source ,
+                "title": file_metadata.get("title","Unknown"),
+                "publisher": file_metadata.get("publisher","Unknown"),
+                "year": file_metadata.get("year",None),
+                "doc_type": file_metadata.get("doc_type","unknown"),
+                "url": file_metadata.get("url","")
             }
 
 

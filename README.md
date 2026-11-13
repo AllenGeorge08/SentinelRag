@@ -198,14 +198,21 @@ SentinelRag indexes a collection of AI security, red-teaming, and governance doc
 app/data/
 ```
 
+Source metadata for each document is maintained in `app/data/sources.yaml` and used for metadata-aware filtering during ingestion and retrieval.
+
 ### Current Documents
 
-| Document                                              | Focus                                         |
-| ----------------------------------------------------- | --------------------------------------------- |
-| **SAFE-AI Full Report**                               | AI safety and security                        |
-| **Solutions Landscape: Red-Teaming Taxonomy v1.0**    | AI red-teaming methodologies and taxonomy     |
-| **State of Agentic AI Security and Governance v2.01** | Security and governance of agentic AI systems |
-| **NIST AI 100-1**                                     | AI-related standards and guidance             |
+| File | Title | Publisher | Year | Type |
+|------|-------|-----------|------|------|
+| `mu-et-al-2026-secure-rag-threats-defenses-benchmarks.pdf` | Towards Secure Retrieval-Augmented Generation: A Comprehensive Review of Threats, Defenses and Benchmarks | arXiv 2603.21654 | 2026 | survey |
+| `nist.ai.100-1.pdf` | Artificial Intelligence Risk Management Framework (AI RMF 1.0) | NIST (NIST AI 100-1) | 2023 | framework |
+| `OWASP-GenAI-LLM-Top-10-2026-v1.0.pdf` | OWASP Top 10 for LLM Applications 2026 | OWASP GenAI Security Project | 2026 | guide |
+| `SAFE-AI_Full_Report.pdf` | SAFE-AI: A Framework for Securing AI-Enabled Systems | The MITRE Corporation | 2025 | framework |
+| `Solutions-Landscape-Red-Teaming-Taxonomy-v.1.0.pdf` | Solutions Landscape – Red Teaming Taxonomy | OWASP GenAI Security Project | 2026 | taxonomy |
+| `State-of-Agentic-AI-Security-and-Governance-v2.01.pdf` | State of Agentic AI Security and Governance 2.01 | OWASP GenAI Security Project | 2026 | report |
+| `securing-ai-systems-known-attacks-and-impacts-2025.pdf` | Securing AI Systems: A Guide to Known Attacks and Impacts | arXiv 2506.23296 | 2025 | guide |
+
+Full metadata (including URLs) is available in `app/data/sources.yaml`.
 
 ---
 
@@ -355,7 +362,11 @@ The evaluation pipeline is integrated with LangSmith for experiment tracking and
 │   │   ├── SAFEAI_Full_Report.pdf
 │   │   ├── Solutions-Landscape-Red-Teaming-Taxonomy-v.1.0.pdf
 │   │   ├── State-of-Agentic-AI-Security-and-Governance-v2.01.pdf
-│   │   └── nist.ai.100-1.pdf
+│   │   ├── nist.ai.100-1.pdf
+│   │   ├── OWASP-GenAI-LLM-Top-10-2026-v1.0.pdf
+│   │   ├── mu-et-al-2026-secure-rag-threats-defenses-benchmarks.pdf
+│   │   ├── securing-ai-systems-known-attacks-and-impacts-2025.pdf
+│   │   └── sources.yaml
 │   ├── evaluation
 │   │   ├── dataset.csv
 │   │   ├── evaluate.py
@@ -523,6 +534,16 @@ Fill in each value with the corresponding API credential/configuration.
 
 # Running the Application
 
+Available make targets:
+
+| Target | Command | Purpose |
+|--------|---------|---------|
+| `make ingest` | `python -m app.rag.ingestion.index` | Index PDFs into Qdrant |
+| `make worker` | `rq worker` | Start the RQ background worker |
+| `make server` | `python -m app.rag.main` | Start the FastAPI API server |
+| `make test` | `pytest tests/` | Run unit tests |
+| `make evaluate` | `python -m app.evaluation.evaluate` | Run the LangSmith evaluation pipeline |
+
 ## Step 1 — Start Redis
 
 Start the required local infrastructure:
@@ -539,16 +560,10 @@ The application uses Redis as the backing queue for RQ workers.
 
 # Step 2 — Index the Knowledge Base
 
-Navigate to the application directory:
-
-```bash
-cd app
-```
-
 Run:
 
 ```bash
-python -m rag.ingestion.index
+make ingest
 ```
 
 The ingestion process:
@@ -565,13 +580,10 @@ Run this whenever the knowledge base is modified.
 
 # Step 3 — Start the RQ Worker
 
-Open a new terminal and activate the virtual environment.
-
-From the application directory:
+Open a new terminal and activate the virtual environment:
 
 ```bash
-cd app
-rq worker
+make worker
 ```
 
 The worker handles the complete RAG execution pipeline:
@@ -604,8 +616,7 @@ You can run multiple workers for concurrent job processing.
 Open another terminal:
 
 ```bash
-cd app
-python -m rag.main
+make server
 ```
 
 The API will be available at:

@@ -63,7 +63,7 @@ evaluation_results = client.evaluate(
     evaluators=[correctness,faithfulness,relevance,retrieval_relevance],
     experiment_prefix="rag-doc-relevance",
     metadata={"version": "LCEL Context, gpt-4-0125-preview"},    
-   max_concurrency=4
+   max_concurrency=1
 )
 
 

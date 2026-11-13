@@ -1,0 +1,83 @@
+Qdrant API Keys Loaded....
+Qdrant client initialized..
+API Keys Configured Succesfully
+Evaluation Examples created succesfully
+View the evaluation results for experiment: 'rag-doc-relevance-d4a09a6f' at:
+https://smith.langchain.com/o/6bb11db4-bbaa-43db-a5f0-9d6164f5c573/datasets/6d3698a4-8b45-4570-8724-1d479d527509/compare?selectedSessions=d87bb270-4b29-4d38-9171-e4b28b3cf4b4
+
+
+0it [00:00, ?it/s]Error running evaluator <DynamicRunEvaluator faithfulness> on run 01a1d4d2-65ac-7742-8046-199864319b66: AttributeError("'list' object has no attribute 'points'")
+Traceback (most recent call last):
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/_runner.py", line 1679, in _run_evaluators
+    evaluator_response = evaluator.evaluate_run(  # type: ignore[call-arg]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 370, in evaluate_run
+    result = self.func(
+             ^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 791, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/app/evaluation/metrics/faithfulness.py", line 48, in faithfulness
+    points = outputs["documents"].points
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'points'
+Error running evaluator <DynamicRunEvaluator retrieval_relevance> on run 01a1d4d2-65ac-7742-8046-199864319b66: AttributeError("'list' object has no attribute 'points'")
+Traceback (most recent call last):
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/_runner.py", line 1679, in _run_evaluators
+    evaluator_response = evaluator.evaluate_run(  # type: ignore[call-arg]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 370, in evaluate_run
+    result = self.func(
+             ^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 791, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/app/evaluation/metrics/retrieval_relevance.py", line 49, in retrieval_relevance
+    points = outputs["documents"].points
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'points'
+1it [00:20, 20.65s/it]Error running evaluator <DynamicRunEvaluator faithfulness> on run 01a1d4d2-7d81-7c62-a677-e303d8957ea9: AttributeError("'list' object has no attribute 'points'")
+Traceback (most recent call last):
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/_runner.py", line 1679, in _run_evaluators
+    evaluator_response = evaluator.evaluate_run(  # type: ignore[call-arg]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 370, in evaluate_run
+    result = self.func(
+             ^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 791, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/app/evaluation/metrics/faithfulness.py", line 48, in faithfulness
+    points = outputs["documents"].points
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'points'
+Error running evaluator <DynamicRunEvaluator retrieval_relevance> on run 01a1d4d2-7d81-7c62-a677-e303d8957ea9: AttributeError("'list' object has no attribute 'points'")
+Traceback (most recent call last):
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/_runner.py", line 1679, in _run_evaluators
+    evaluator_response = evaluator.evaluate_run(  # type: ignore[call-arg]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 370, in evaluate_run
+    result = self.func(
+             ^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 791, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/app/evaluation/metrics/retrieval_relevance.py", line 49, in retrieval_relevance
+    points = outputs["documents"].points
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'points'
+2it [00:30, 14.18s/it]Error running evaluator <DynamicRunEvaluator faithfulness> on run 01a1d4d2-92e5-7c80-860c-3f34af475998: AttributeError("'list' object has no attribute 'points'")
+Traceback (most recent call last):
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/_runner.py", line 1679, in _run_evaluators
+    evaluator_response = evaluator.evaluate_run(  # type: ignore[call-arg]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 370, in evaluate_run
+    result = self.func(
+             ^^^^^^^^^^
+  File "/home/allen08/SentinelRag/venv/lib/python3.12/site-packages/langsmith/evaluation/evaluator.py", line 791, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/allen08/SentinelRag/app/evaluation/metrics/faithfulness.py", line 48, in faithfulness
+    points = outputs["documents"].points
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'points'

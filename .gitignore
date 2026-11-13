@@ -2,3 +2,6 @@
 qdrant_storage/
 __pycache__/
 venv/
+Changes.MD
+.ruff_cache
+.pytest_cache

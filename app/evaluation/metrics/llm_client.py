@@ -1,41 +1,29 @@
 import os 
-from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-groq_model = ChatGroq(
-    api_key=GROQ_API_KEY,
-    model="openai/gpt-oss-20b"
-)
-
-
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
-import os  
-
-
-load_dotenv()
-
-try:
-    API_KEY = os.getenv("NVIDIA_API_KEY")
-    # print("Your Nvidia api key is : ",API_KEY)
-except:
-    API_KEY = input("Enter your NVIDIA API KEY")
-
-nvidia_llm = ChatNVIDIA(model="nvidia/nemotron-3-ultra-550b-a55b",nvidia_api_key=API_KEY)
-
-
 from langchain_openrouter import ChatOpenRouter
+from tenacity import retry_if_exception_type, wait_exponential_jitter, stop_after_attempt
 
-load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_EVALUATION_KEY=os.getenv("OPENROUTER_EVALUATION_KEY")
 
+# Judge model for evaluation metrics
 openrouter_model = ChatOpenRouter(
     api_key=OPENROUTER_API_KEY,
-    model="openai/gpt-6-luna"
+    model="openai/gpt-6-luna",
+    temperature=0
 )
 
-
+# Generation model for RAG pipeline (worker.py)
+generation_model = ChatOpenRouter(
+    api_key=OPENROUTER_EVALUATION_KEY,
+    model="anthropic/claude-haiku-5.5",
+    temperature=0
+).with_retry(
+    retry_if_exception_type=(Exception,),
+    wait_exponential_jitter=True,
+    stop_after_attempt=4
+)
