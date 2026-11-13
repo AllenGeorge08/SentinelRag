@@ -38,7 +38,8 @@ Scope: Evaluation pipeline (LLM-as-a-Judge metrics + evaluation driver)
 - Switched reranker to Cohere `cohere/rerank-5-fast` via OpenRouter rerank API
 - Metrics reported:
   - Retrieval Relevance: 1.00 / 1.00
-  - Faithfulness: 0.63 / 1.00 (earlier peak 0.95/1.00 observed)
+  - Faithfulness: 0.63 / 1.00
+  - Relevance: 0.95/1.00
   - Correctness: 0.42 / 1.00
 - Latency improvements:
   - P50 latency: 4.37s (down from baseline 22.99s avg)
