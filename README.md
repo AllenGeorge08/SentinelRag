@@ -856,16 +856,6 @@ The reranker (Cohere Rerank 5 Fast via OpenRouter) is a cross-encoder. It reads 
 | Reranker on a single retriever | High precision, but only over whatever that retriever found |
 | **Hybrid + RRF + reranker** | Wide recall first, then precision on the shortlist |
 
-### Measured effect
-
-See [Ablation results](#ablation-study---run-1-to-run-8). Each stage is evaluated separately so its contribution is visible.
-
-| Configuration | Hit@5 | Retrieval precision | Correctness | Faithfulness |
-|---|---|---|---|---|
-| Dense only | | | | |
-| BM25 only | | | | |
-| Dense + BM25 + RRF | | | | |
-| + Reranker | | | | |
 
 ---
 
