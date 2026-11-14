@@ -10,6 +10,7 @@ The system uses **FastAPI** for the API layer, **Redis Queue (RQ)** for asynchro
 > ### Engineering Highlights
 > * Implemented **hybrid retrieval** combining dense vector search (Qdrant Cloud) and BM25 lexical retrieval.
 > * Implemented **Reciprocal Rank Fusion (RRF)** to merge independent retrieval rankings.
+> * Migrated vector infrastructure from **local Qdrant to Qdrant Cloud**, improving retrieval performance.
 > * Added **document deduplication** and **Cohere rerank-5-fast** reranking via OpenRouter to improve context quality.
 > * Built an **asynchronous RAG execution pipeline** using FastAPI, Redis, and RQ workers.
 > * Integrated **LangSmith tracing and LLM-as-a-Judge evaluation** using OpenRouter (`gpt-6-luna`) across correctness, relevance, retrieval relevance, and groundedness.
