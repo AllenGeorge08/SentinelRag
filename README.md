@@ -796,6 +796,80 @@ This makes it possible to inspect both **what the system retrieved** and **what 
 
 ---
 
+# Why Hybrid Retrieval + RRF + Reranking?
+
+Retrieval has two competing goals: **recall** (don't miss the passage that answers the question) and **precision** (don't hand the LLM noise). No single technique does both well, so SentinelRag uses three stages, each with one job.
+
+```
+Query
+  │
+  ├──► Dense search (Qdrant)  ── top 30 ──┐   meaning
+  │                                        ├──► RRF merge ──► dedupe ──► top 30
+  └──► BM25 (sparse)          ── top 30 ──┘   exact terms
+                                                                  │
+                                                                  ▼
+                                                   Reranker (Cohere Rerank 5 Fast)
+                                                   reads query + chunk together
+                                                                  │
+                                                                  ▼
+                                                      Top 5 chunks ──► LLM ──► cited answer
+
+        └────────── stages 1-2: recall ──────────┘     └──── stage 3: precision ────┘
+```
+
+### Stage 1: Dense + BM25 (recall)
+
+The two retrievers fail in different ways.
+
+| Retriever | Strength | Weakness |
+|---|---|---|
+| Dense (embeddings) | Matches meaning, even when wording differs | Can blur exact terms, identifiers, and acronyms |
+| BM25 (lexical) | Exact terms such as `AML.T0012`, `RRF`, `LLM01` | Misses paraphrases and synonyms |
+
+Security documentation is full of both: conceptual language ("manipulating an agent's behavior") and exact identifiers (framework IDs, named attacks). Using only one retriever means losing one kind of match.
+
+### Stage 2: Reciprocal Rank Fusion (merging)
+
+The two retrievers produce scores on different scales. A cosine similarity of 0.7 and a BM25 score of 12 can't be compared or averaged. RRF avoids the problem by ignoring scores and using only **ranks**. Each chunk earns `1 / (k + rank)` from every list it appears in, and the contributions are summed. A chunk ranked well by both retrievers rises to the top, and a chunk that's strong in only one still has a chance.
+
+- No tuning or training, and no model call, so it's fast and cheap.
+- Runs inside Qdrant as a single query.
+- **Limit:** it never reads the text. It can only reorder what the two retrievers already found.
+
+### Stage 3: Reranking (precision)
+
+RRF gives a wide, high-recall shortlist (30 candidates), but it still contains near-misses: chunks that share keywords without answering the question, such as tables of contents or "see also" cross-references. Sending all of them to the LLM invites answers that stretch beyond the evidence.
+
+The reranker (Cohere Rerank 5 Fast via OpenRouter) is a cross-encoder. It reads the **query and each chunk together** and scores how well that chunk answers the question. That's more accurate than comparing separate embeddings, but too expensive to run over the whole index, which is why it only sees the shortlist. We keep the top 5.
+
+- Pushes truly relevant chunks up and demotes keyword-only matches.
+- Scores are calibrated (0 to 1), so a threshold can be used to return "Not found in the documents" instead of answering from weak context.
+- **Limit:** it cannot find a passage that stages 1 and 2 missed. That's why retrieval casts a wide net first.
+
+### Why not just one of them?
+
+| Pipeline | Typical failure |
+|---|---|
+| Dense only | Misses exact terms and identifiers |
+| BM25 only | Misses paraphrased questions |
+| Dense + BM25 (RRF), no reranker | Good recall, but noisy top results reach the LLM |
+| Reranker on a single retriever | High precision, but only over whatever that retriever found |
+| **Hybrid + RRF + reranker** | Wide recall first, then precision on the shortlist |
+
+### Measured effect
+
+See [Ablation results](#ablation-study---run-1-to-run-8). Each stage is evaluated separately so its contribution is visible.
+
+| Configuration | Hit@5 | Retrieval precision | Correctness | Faithfulness |
+|---|---|---|---|---|
+| Dense only | | | | |
+| BM25 only | | | | |
+| Dense + BM25 + RRF | | | | |
+| + Reranker | | | | |
+
+---
+
+
 # Future Improvements
 
 Potential next steps:
