@@ -1,37 +1,40 @@
+from typing import List
 from typing_extensions import Annotated,TypedDict
-from app.evaluation.metrics.llm_client import groq_model,nvidia_llm,openrouter_model
+from app.evaluation.metrics.llm_client import openrouter_model
 from pydantic import BaseModel,Field
 import json 
 
 
 class Correctness(BaseModel):
     #Helps model to reason before filling this schema
+    key_points: List[str] = Field(description="The essential points in the ground truth answer")
     explaination: str = Field(description="Explain your reasoning for the score")
     is_correct: bool  =  Field(description="True if the answer is correct, False otherwise")
 
 
 correctness_instructions ="""
 
-"Role" : You're a teacher grading a quiz.
+You are grading a student answer against a ground truth answer.
 
-Context: "You will be given a question , the ground truth(correct) answer, and the student answer.
+Steps:
+1) List the key points of the GROUND TRUTH (the essential facts needed to answer the QUESTION).
+2) Check each key point against the STUDENT ANSWER.
+3) Check the student answer for statements that contradict the ground truth.
 
-Here's the grade criteria to follow:
+Mark is_correct=True only if:
+- every key point is covered (wording and structure may differ),
+- there are no contradictions with the ground truth,
+- any extra content is relevant and does not conflict with the ground truth.
 
-1) Grade the student answers bassed only on their factual accuracy relative to the ground truth answer.
-2) Ensure that the student answer does not contain and conflicting statements.
-3) A response maybe factually correct but should be marked incorrect if it omits essential information required to fully answer the question.
-4) Base your evaluation based on student answer and ground truth. Don't use external knowledge base.
-5) Ignore differences in wording,sentence structure,or formatting . Focus only on factual equivalence.
-6) If a student answers more than the ground truth answer, and it contains enough relevancy, treat it as factually correct to the ground truth answer.
+Mark is_correct=False if:
+- a key point is missing or wrong,
+- the student says the answer is "not found" but the ground truth gives an answer,
+- the student gives a substantive answer but the ground truth says the information is not in the documents.
 
-Correctness:
-- A correctness value of True means that the student's answer meets all of the criteria.
-- A correctness value of False means that the student's answer does not meet all of the criteria.
+Rules:
+- Judge only against the ground truth. Do not use outside knowledge.
+- Ignore "Source Document", "Page", and "Suggestion" lines and formatting.
 
-Expain your reasoning for the sccores in a step by step manner to ensure your reasoning and conclusion are correct.
-
-Avoid simply stating the correct answer at the outset.
 
 """
 
@@ -39,36 +42,14 @@ Avoid simply stating the correct answer at the outset.
 openrouter_structured = openrouter_model.with_structured_output(
     Correctness, 
     method="json_schema", 
-    strict=True
-)
-
-# Fallback 1: Groq
-groq_structured = groq_model.with_structured_output(
-    Correctness, 
-    method="json_schema", 
-    strict=True
+    strict=True,
 ).with_retry(
     retry_if_exception_type=(Exception,), 
     wait_exponential_jitter=True, 
     stop_after_attempt=4
 )
 
-# Fallback 2: NVIDIA
-nvidia_structured = nvidia_llm.with_structured_output(
-    Correctness, 
-    method="json_schema", 
-    strict=True
-).with_retry(
-    retry_if_exception_type=(Exception,), 
-    wait_exponential_jitter=True, 
-    stop_after_attempt=4
-)
-
-# Combined runnable: OpenRouter -> Groq -> NVIDIA
-Correctness_llm = openrouter_structured.with_fallbacks(
-    [groq_structured, nvidia_structured]
-)
-
+Correctness_llm = openrouter_structured
 
 
 def correctness(inputs: dict, outputs: dict,reference_outputs: dict) -> bool:
@@ -84,10 +65,3 @@ def correctness(inputs: dict, outputs: dict,reference_outputs: dict) -> bool:
     ])
 
     return result.is_correct
-
-
-    
-
-
-
-    
