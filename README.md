@@ -8,12 +8,13 @@ The system uses **FastAPI** for the API layer, **Redis Queue (RQ)** for asynchro
 
 
 > ### Engineering Highlights
-> * Implemented **hybrid retrieval** combining dense vector search and BM25 lexical retrieval.
+> * Implemented **hybrid retrieval** combining dense vector search (Qdrant Cloud) and BM25 lexical retrieval.
 > * Implemented **Reciprocal Rank Fusion (RRF)** to merge independent retrieval rankings.
-> * Migrated vector infrastructure from **local Qdrant to Qdrant Cloud**, improving retrieval performance.
+> * Added **document deduplication** and **Cohere rerank-5-fast** reranking via OpenRouter to improve context quality.
 > * Built an **asynchronous RAG execution pipeline** using FastAPI, Redis, and RQ workers.
-> * Integrated **LangSmith tracing and LLM-as-a-Judge evaluation** across correctness, relevance, retrieval relevance, and groundedness.
-> * Benchmarked the system at **11.88s P50 and 16.36s P99 latency** across 20 evaluation runs.
+> * Integrated **LangSmith tracing and LLM-as-a-Judge evaluation** using OpenRouter (`gpt-6-luna`) across correctness, relevance, retrieval relevance, and groundedness.
+> * Generation model: **OpenRouter Claude 3.5 Haiku** (`anthropic/claude-3-5-haiku-20241022`) with retry + exponential jitter.
+> * Benchmarked at **4.37s P50 and 6.26s P99 latency** (Run 8), down from 22.99s avg / 95.11s P99 baseline.
 
 
 
@@ -698,26 +699,50 @@ The experiment and associated traces are uploaded to LangSmith.
 
 # LangSmith Evaluation
 
-Latest evaluation results:
+![Latest Evaluation Results](./results.png)
 
-[View LangSmith Evaluation](https://smith.langchain.com/o/6bb11db4-bbaa-43db-a5f0-9d6164f5c573/datasets/6d3698a4-8b45-4570-8724-1d479d527509)
----
 
-# Performance
 
-Current benchmark results across **20 evaluation runs**:
+# Evaluation Metrics — Definitions
 
-| Metric              |       Result |
-| ------------------- | -----------: |
-| Correctness         | **1.00 AVG** |
-| Answer Relevance    | **1.00 AVG** |
-| Retrieval Relevance | **1.00 AVG** |
-| P50 Latency         |   **11.88s** |
-| P99 Latency         |   **16.36s** |
-
-These measurements represent the current implementation and benchmark configuration.
+| Metric | Meaning | Range |
+|--------|---------|-------|
+| **Correctness** | Whether the generated answer correctly answers the question, graded against the ground-truth answer from the benchmark dataset. Checks factual accuracy, completeness, and absence of contradictions. | 0.00 – 1.00 |
+| **Faithfulness** | Whether the generated answer is grounded in the retrieved documentation (no hallucination or unsupported claims outside the retrieved facts). | 0.00 – 1.00 |
+| **Answer Relevance** | Whether the generated answer addresses the user's question intent — i.e., it answers the main question and isn't off-topic or hallucinated. | 0.00 – 1.00 |
+| **Retrieval Relevance** | Whether the retrieved documents contain any keywords or semantic meaning related to the question. Partial relevance counts as relevant. | 0.00 – 1.00 |
 
 ---
+
+# Ablation Study — Run 1 to Run 8
+
+| Run | Change | Impact |
+|-----|--------|--------|
+| **Baseline** | Original pipeline: Ollama judge (minimax-m3:cloud), Groq generation (gpt-oss-20b), no reranking, max_concurrency=4 | Correctness 0.11, Faithfulness 0.32, Relevance 0.37, Retrieval Relevance 1.00 |
+| **Run 3** | Metadata-based indexing via `app/data/sources.yaml` — each chunk carries publisher, year, doc_type, source URL | Enabled metadata-aware filtering; baseline for subsequent runs |
+| **Run 4** | Judge model change (run3 → run4) — switched to a more resilient model config after rate-limit errors | Stabilized evaluation runs |
+| **Run 5** | `max_concurrency` reduced from 4 to 1 — sequential evaluation to avoid concurrency errors | More stable, error-free evaluation runs |
+| **Run 6** | Generation model replaced: Groq (gpt-oss-20b) → OpenRouter Claude 3.5 Haiku; added NVIDIARerank with `RERANK_MIN` threshold | Improved answer quality and grounding |
+| **Run 7** | Rerank model changed to Cohere `cohere/rerank-5-fast` via OpenRouter rerank API with try/except fallback to RRF order | Run failed — evaluation did not complete |
+| **Run 8** | Document deduplication (normalized text key) + Cohere `cohere/rerank-5-fast` reranker | Correctness 0.45, Faithfulness 0.64, Relevance 0.95, Retrieval Relevance 1.00; P50 4.37s, P99 6.26s |
+
+---
+
+# Metrics Achieved — Baseline vs Run 8
+
+| Metric | Baseline | Run 8 (Final) | Change |
+|--------|----------|---------------|--------|
+| Correctness | 0.11 | 0.45 | +0.34 |
+| Faithfulness | 0.32 | 0.64 | +0.32 |
+| Answer Relevance | 0.37 | 0.95 | +0.58 |
+| Retrieval Relevance | 1.00 | 1.00 | 0.00 |
+
+All metrics are scored out of 1.00. Retrieval Relevance was already at ceiling (1.00) in the baseline because the hybrid dense + BM25 + RRF pipeline consistently returns topically related documents. The largest gains came from Answer Relevance (+0.58) and Faithfulness (+0.32), driven by the Claude 3.5 Haiku generation model and the Cohere reranker surfacing more relevant context.
+
+Latency also improved substantially: P50 from 22.99s → 4.37s, P99 from 95.11s → 6.26s.
+
+---
+
 
 # Design Decisions
 
