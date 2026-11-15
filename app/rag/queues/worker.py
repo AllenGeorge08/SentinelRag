@@ -19,7 +19,7 @@ load_dotenv()
 
 or_client = OpenRouter(api_key=os.environ["OPENROUTER_API_KEY"])
 RERANK_MODEL = "cohere/rerank-5-fast"  # or "cohere/rerank-5-pro"
-RERANK_MIN = None  # set after looking at logged scores
+RERANK_MIN = None  
 log = logging.getLogger(__name__)
 
 
