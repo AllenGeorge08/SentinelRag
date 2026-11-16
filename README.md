@@ -4,7 +4,7 @@ A production-style **Retrieval-Augmented Generation (RAG)** system for querying 
 
 SentinelRag combines **dense vector retrieval, BM25 lexical retrieval, and Reciprocal Rank Fusion (RRF)** to improve context retrieval before passing the selected documents to an LLM for grounded response generation.
 
-The system uses **FastAPI** for the API layer, **Redis Queue (RQ)** for asynchronous processing, **Qdrant Cloud** for vector search, and **LangSmith** for tracing, evaluation, and observability.
+The system uses **FastAPI** for the API layer, **BullMQ** for asynchronous processing, **Qdrant Cloud** for vector search, and **LangSmith** for tracing, evaluation, and observability.
 
 
 > ### Engineering Highlights
@@ -12,7 +12,7 @@ The system uses **FastAPI** for the API layer, **Redis Queue (RQ)** for asynchro
 > * Implemented **Reciprocal Rank Fusion (RRF)** to merge independent retrieval rankings.
 > * Migrated vector infrastructure from **local Qdrant to Qdrant Cloud**, improving retrieval performance.
 > * Added **document deduplication** and **Cohere rerank-5-fast** reranking via OpenRouter to improve context quality.
-> * Built an **asynchronous RAG execution pipeline** using FastAPI, Redis, and RQ workers.
+> * Built an **asynchronous RAG execution pipeline** using FastAPI, Redis, and BullMQ workers.
 > * Integrated **LangSmith tracing and LLM-as-a-Judge evaluation** using OpenRouter (`gpt-6-luna`) across correctness, relevance, retrieval relevance, and groundedness.
 > * Generation model: **OpenRouter Claude 3.5 Haiku** (`anthropic/claude-3-5-haiku-20241022`) with retry + exponential jitter.
 > * Benchmarked at **4.37s P50 and 6.26s P99 latency** (Run 8), down from 22.99s avg / 95.11s P99 baseline.
@@ -22,63 +22,7 @@ The system uses **FastAPI** for the API layer, **Redis Queue (RQ)** for asynchro
 ---
 
 ## Architecture
-
-```text
-                         ┌──────────────────┐
-                         │    User Query    │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │     FastAPI      │
-                         │     REST API     │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │   Redis Queue    │
-                         │       (RQ)       │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │    RQ Worker     │
-                         └────────┬─────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │                           │
-                    ▼                           ▼
-            ┌───────────────┐           ┌───────────────┐
-            │    Dense      │           │     BM25      │
-            │   Retrieval   │           │    Retrieval  │
-            │ Qdrant Cloud  │           │    Lexical    │
-            └───────┬───────┘           └───────┬───────┘
-                    │                           │
-                    └─────────────┬─────────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │   RRF Reranking  │
-                         │ Reciprocal Rank  │
-                         │      Fusion      │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │ Retrieved Context│
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │       LLM        │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │ Grounded Answer  │
-                         │ + Page Citations │
-                         └──────────────────┘
-```
+![Architecture Diagram](./architecture.png)
 
 ---
 
@@ -92,7 +36,7 @@ The system uses **FastAPI** for the API layer, **Redis Queue (RQ)** for asynchro
 * PDF ingestion and chunking pipeline
 * Embedding-based document indexing
 * Grounded responses with source/page citations
-* Asynchronous processing using **Redis Queue**
+* Asynchronous processing using **BullMQ**
 * FastAPI REST API
 * LangSmith tracing and observability
 * Automated RAG evaluation pipeline
@@ -279,7 +223,7 @@ The generation pipeline is designed to answer questions using the retrieved docu
 
 # Asynchronous Processing
 
-SentinelRag uses **Redis Queue (RQ)** to decouple the API layer from the RAG execution pipeline.
+SentinelRag uses **BullMQ** to decouple the API layer from the RAG execution pipeline.
 
 ```text
 Client
@@ -288,10 +232,10 @@ Client
 FastAPI
   │
   ▼
-Redis Queue
+BullMQ Queue
   │
   ▼
-RQ Worker
+BullMQ Worker
   │
   ├── Retrieval
   ├── RRF
@@ -341,14 +285,14 @@ SentinelRag includes an automated evaluation pipeline using a custom benchmark d
 Across **20 evaluation runs**:
 
 ```text
-Correctness          1.00 AVG
-Answer Relevance     1.00 AVG
+Correctness          0.45 AVG
+Answer Relevance     0.95 AVG
 Retrieval Relevance  1.00 AVG
-Faithfulness         31% Grounded
+Faithfulness         0.64 AVG
 
 Latency
-P50                  11.88s
-P99                  16.36s
+P50                  4.37s
+P99                  6.26s
 ```
 The evaluation pipeline is integrated with LangSmith for experiment tracking and trace-level analysis.
 
@@ -420,13 +364,12 @@ The evaluation pipeline is integrated with LangSmith for experiment tracking and
 
 ### LLM Providers
 
-* Groq
-* NVIDIA API
+* OpenRouter
 
 ### Infrastructure
 
 * Redis
-* Redis Queue (RQ)
+* BullMQ (Redis-backed)
 * Docker
 
 ### Observability & Evaluation
@@ -446,8 +389,7 @@ Make sure you have:
 * Docker
 * Redis
 * Qdrant Cloud account
-* Groq API key
-* NVIDIA API key
+* OpenRouter API key
 * LangSmith API key
 
 ---
@@ -507,9 +449,7 @@ cp .env.example .env
 The current environment configuration is:
 
 ```env
-GROQ_API_KEY=
-
-NVIDIA_API_KEY=
+OPENROUTER_API_KEY=
 
 LANGSMITH_API_KEY=
 
@@ -524,8 +464,7 @@ Fill in each value with the corresponding API credential/configuration.
 
 | Variable                  | Purpose                                 |
 | ------------------------- | --------------------------------------- |
-| `GROQ_API_KEY`            | Authentication for Groq-hosted models   |
-| `NVIDIA_API_KEY`          | Authentication for NVIDIA-hosted models |
+| `OPENROUTER_API_KEY`      | Authentication for OpenRouter-hosted models   |
 | `LANGSMITH_API_KEY`       | LangSmith tracing and evaluation        |
 | `QDRANT_API_KEY`          | Authentication for Qdrant Cloud         |
 | `QDRANT_CLUSTER_ENDPOINT` | Qdrant Cloud cluster endpoint           |
@@ -541,7 +480,7 @@ Available make targets:
 | Target | Command | Purpose |
 |--------|---------|---------|
 | `make ingest` | `python -m app.rag.ingestion.index` | Index PDFs into Qdrant |
-| `make worker` | `rq worker` | Start the RQ background worker |
+| `make worker` | `bullmq worker` | Start the BullMQ background worker |
 | `make server` | `python -m app.rag.main` | Start the FastAPI API server |
 | `make test` | `pytest tests/` | Run unit tests |
 | `make evaluate` | `python -m app.evaluation.evaluate` | Run the LangSmith evaluation pipeline |
@@ -554,9 +493,9 @@ Start the required local infrastructure:
 docker compose up -d
 ```
 
-The application uses Redis as the backing queue for RQ workers.
+The application uses Redis as the backing store for BullMQ workers.
 
-> Qdrant is hosted on **Qdrant Cloud** and therefore does not need to be started locally.
+> Qdrant can run locally via Docker or on Qdrant Cloud — set `QDRANT_CLUSTER_ENDPOINT` for cloud, otherwise local `localhost:6333` is used.
 
 ---
 
@@ -580,7 +519,7 @@ Run this whenever the knowledge base is modified.
 
 ---
 
-# Step 3 — Start the RQ Worker
+# Step 3 — Start the BullMQ Worker
 
 Open a new terminal and activate the virtual environment:
 
@@ -700,7 +639,7 @@ The experiment and associated traces are uploaded to LangSmith.
 
 # LangSmith Evaluation
 
-![Latest Evaluation Results](./results.png)
+![Latest Evaluation Results](./architecture.png)
 
 
 
@@ -769,11 +708,11 @@ Lexical Similarity
 
 The initial implementation used local Qdrant storage. Migrating to Qdrant Cloud provided managed vector infrastructure and improved retrieval performance compared with the local setup.
 
-### Why Redis Queue?
+### Why BullMQ Queue?
 
 RAG execution involves multiple potentially expensive operations, including retrieval, prompt construction, and LLM inference.
 
-RQ separates these operations from the HTTP request lifecycle, allowing FastAPI to operate as the request-facing layer while workers execute background jobs.
+BullMQ separates these operations from the HTTP request lifecycle, allowing FastAPI to operate as the request-facing layer while workers execute background jobs.
 
 ### Why LangSmith?
 
@@ -865,7 +804,6 @@ The reranker (Cohere Rerank 5 Fast via OpenRouter) is a cross-encoder. It reads 
 
 Potential next steps:
 
-* Cross-encoder reranking
 * Query rewriting
 * Query decomposition
 * Metadata-aware filtering

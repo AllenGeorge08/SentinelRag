@@ -15,7 +15,7 @@ ingest:
 	PYTHONPATH="$(PYTHONPATH)" $(PYTHON) -m app.rag.ingestion.index
 
 worker:
-	cd app && PYTHONPATH="$(PYTHONPATH)" rq worker
+	cd app && PYTHONPATH="$(PYTHONPATH)" bullmq-worker  # TODO: replace with your BullMQ worker command
 
 server:
 	cd app && PYTHONPATH="$(PYTHONPATH)" $(PYTHON) -m rag.main
