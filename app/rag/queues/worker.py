@@ -1,6 +1,9 @@
 import logging
 import os
 import re
+import signal
+from typing import Any
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from langsmith import traceable
@@ -15,13 +18,17 @@ from app.rag.config.config import (
     sparse_embedding_model,
 )
 
+import asyncio
+from bullmq import Job, Worker 
+
 load_dotenv()
 
 or_client = OpenRouter(api_key=os.environ["OPENROUTER_API_KEY"])
 RERANK_MODEL = "cohere/rerank-5-fast"  # or "cohere/rerank-5-pro"
 RERANK_MIN = None  
 log = logging.getLogger(__name__)
-
+QUEUE_NAME="SentinelRag"
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 
 SYSTEM_PROMPT = """You answer questions using ONLY the numbered context passages below.
 
@@ -35,6 +42,18 @@ Rules:
 <context>
 {context}
 </context>"""
+
+def build_redis_connection(url:str) -> dict[str,Any]:
+    parsed = urlparse(url)
+    conn: dict[str,Any] = {
+        "host": parsed.hostname or "localhost",
+        "port": parsed.port or 6379
+    }
+    if parsed.password:
+        conn["password"] = parsed.password
+    if parsed.path and parsed.path != "/":
+        conn["db"] = int(parsed.path.lstrip("/"))
+    return conn 
 
 
 def retrieve(query: str, top_n: int = 5):
@@ -98,8 +117,13 @@ def build_footer(answer: str, chunks) -> str:
 
 
 @traceable
-def process_query(user_query: str):
-    chunks = retrieve(user_query)
+async  def process_query(user_query: str,job: Job|None = None):
+    if job:
+        await job.updateProgress({"stage":"retrieving"})
+
+    # Offload synchronous retrieval
+    
+    chunks = await asyncio.to_thread(retrieve,user_query)
 
     # optional: refuse without calling the LLM when retrieval is weak
     if RERANK_MIN is not None and (
@@ -111,6 +135,9 @@ def process_query(user_query: str):
             "contexts": [],
             "documents": [],
         }
+
+    if job:
+        await job.updateProgress({"stage": "generating"})
 
     response = generation_model.invoke(
         [
@@ -134,3 +161,40 @@ def process_query(user_query: str):
         "contexts": [c["text"] for c in chunks],  # exact chunks the generator saw
         "documents": chunks,  # plain dicts: text, page, source, title, rerank_score
     }
+
+
+async def processor(job: Job, token: str) -> dict[str, Any]:
+    # Match whatever key server.py puts into queue.add(...)
+    user_query = job.data.get("query") or job.data.get("user_query")
+    if not user_query or not isinstance(user_query, str):
+        raise ValueError(f"Invalid query payload in job={job.id}: {job.data}")
+    return await process_query(user_query=user_query, job=job)
+
+
+async def main() -> None:
+    worker = Worker(
+        QUEUE_NAME,
+        processor,
+        {
+            "connection": build_redis_connection(REDIS_URL),
+            "concurrency": 4,
+            "lockDuration": 90_000,
+            "stalledInterval": 30_000,
+        },
+    )
+
+    stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, stop_event.set)
+
+    log.info("Worker listening on queue=%s redis=%s", QUEUE_NAME, REDIS_URL)
+    await stop_event.wait()
+
+    log.info("Shutting down worker...")
+    await worker.close()
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())
