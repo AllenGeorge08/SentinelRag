@@ -639,7 +639,7 @@ The experiment and associated traces are uploaded to LangSmith.
 
 # LangSmith Evaluation
 
-![Latest Evaluation Results](./architecture.png)
+![Latest Evaluation Results](./results.png)
 
 
 
